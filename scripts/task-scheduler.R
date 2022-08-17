@@ -18,7 +18,4 @@ taskscheduler_create(taskname = "update-portfolio-tracker",
 #                     starttime = "11:10", 
 #                     modifier = 15)
 
-#delete old tasks
-#askscheduler_delete(taskname="update-portfolio-tracker")
-#taskscheduler_delete(taskname="update-portfolio-tracker-15min")
 

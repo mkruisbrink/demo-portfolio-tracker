@@ -1,0 +1,611 @@
+---
+title: "Demo Portfolio Tracker"
+author: "Max Kruisbrink"
+output: 
+  flexdashboard::flex_dashboard:
+    favicon: "20220808_maxplaining-logo-48x48.jpg"
+    orientation: rows
+    social: menu
+    source_code: embed
+---
+
+
+```{r setup, include=FALSE}
+
+#libraries
+library(tidyverse) 
+library(plotly) # interactive charts
+library(flexdashboard) # dashboards
+library(pilot) # chart theme
+library(here) # sourcing
+library(scales) # charting
+library(reactable) # tables
+
+#declare root
+here::i_am("scripts/main.R")
+
+### READ DATA
+### READ DATA
+### READ DATA
+
+#read portfolio
+pf_tracker <- read_csv("data/pf-tracker.csv")
+
+# define total invested amount
+invested_amount <- 5000
+
+```
+
+Portfolio Tables
+=======================================================================
+
+Row 
+-------------------------------------
+
+### Refresh Date
+
+```{r}
+valueBox(Sys.Date(),
+         icon = "fa-calendar"
+         )
+```
+
+### Total Portfolio Value
+
+```{r}
+pv <- sum(pf_tracker$value) %>% round(digits = 0)
+
+valueBox(paste0("€",pv),
+         icon = "fa-chart-pie",
+         color = "success"
+         )
+```
+
+### Total Projects
+
+```{r}
+
+valueBox(nrow(pf_tracker),
+         icon = "fa-hashtag",
+         color = "warning"
+         )
+
+```
+
+### Total Invested
+
+```{r}
+
+
+valueBox(paste0("€",invested_amount),
+         icon = "fa-coins"
+         )
+
+```
+
+
+### Total Return on Investment
+
+```{r}
+
+roi <- (pv-invested_amount)/invested_amount 
+
+valueBox(scales::percent(roi),
+         icon = "fa-percent"
+         )
+
+```
+
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Portfolio Essentials
+
+```{r reactable portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% 
+  select(logo_url, 
+         rank, 
+         rank_delta, 
+         name, 
+         id, 
+         amount, 
+         share, 
+         value, 
+         price, 
+         high, 
+         price_pct_ath,
+         drop_pct_ath) %>% 
+  reactable(
+    defaultColDef = colDef(
+    align = "center",
+    headerStyle = list(background = "#f7f7f8"),
+  ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    defaultSorted = c("rank"),
+    #style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+    
+    columns = list(
+      logo_url = colDef(name = "Logo",
+                        cell = embed_img(logo_url)
+                        ),
+      rank = colDef(name = "Rank"
+                    ),
+      rank_delta = colDef(name = "Rank Change",
+                          style = pos_neg_colors("red", "green", bold = TRUE)
+                          ),
+      name = colDef(name = "Name"
+                    ),
+      id = colDef(name = "ID"
+                  ),
+      amount = colDef(name = "Amount"
+                      ),
+      value = colDef(name = "Total Value",
+                     format = colFormat(prefix = "€",
+                                        digits = 0),
+                     style = list(background = "#f7f7f8")
+                     ),
+      share = colDef(name = "Share",
+                     format = colFormat(suffix = "%",
+                                        digits = 1),
+                     style = list(background = "#f7f7f8")
+                     ),
+      price = colDef(name = "Current Price",
+                     format = colFormat(prefix = "€", 
+                                        separators = TRUE, 
+                                        digits = 2)
+                     ),
+      high = colDef(name = "Highest Price",
+                    format = colFormat(prefix = "€", 
+                                        separators = TRUE, 
+                                        digits = 2)
+                    ),
+      price_pct_ath = colDef(name = "Price relative to ATH",
+                             format = colFormat(suffix = "%",
+                                        digits = 1)
+                             ),
+      drop_pct_ath = colDef(name = "Price drop from ATH",
+                             format = colFormat(suffix = "%",
+                                        digits = 1)
+                             )
+  ))
+
+```
+
+
+### Portfolio Extended
+
+```{r reactable2 portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% 
+  select(logo_url, 
+         1:5, # some other columns
+         16:21) %>% # some other columns
+  reactable(
+    defaultColDef = colDef(
+      align = "center",
+      headerStyle = list(background = "#f7f7f8")
+      ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    defaultSorted = c("rank"),
+    columns = list(
+      logo_url = colDef(name = "Logo",
+                        cell = embed_img(logo_url)
+                        ),
+      rank = colDef(name = "Rank"),
+      rank_delta = colDef(name = "Rank Change",
+                    style = pos_neg_colors("red", "green", bold = TRUE)),
+      style = pos_neg_colors("red", "green", bold = TRUE),
+      name = colDef(name = "Name"),
+      id = colDef(name = "ID"),
+      high = colDef(name = "Highest Price",
+                    format = colFormat(prefix = "€", 
+                                        separators = TRUE, 
+                                        digits = 2)),
+      price_pct_ath = colDef(name = "Price % from ATH",
+                             format = colFormat(suffix = "%",
+                                        digits = 1)),
+      high_timestamp = colDef(name = "ATH Timestamp",
+                              format = colFormat(date = TRUE)),
+      days_ath = colDef(name = "Days since ATH"),
+      circulating_supply = colDef(name = "Circulating Supply"),
+      max_supply = colDef(name = "Max Supply"),
+      market_cap = colDef(name = "Market Cap",
+                          minWidth = 140,
+                          format = colFormat(prefix = "€", 
+                                        separators = TRUE, 
+                                        digits = 2,
+                                        )),
+      market_cap_dominance = colDef(name = "Market Cap Dominance",
+                                    format = colFormat(suffix = "%",
+                                    digits = 1)),
+      num_exchanges = colDef(name = "Number of Exchanges"),
+      num_pairs = colDef(name = "# Pairs"),
+      num_pairs_unmapped = colDef("# Unmapped Pairs"),
+      platform_currency = colDef(name = "Platform Currency")
+  
+  ))
+
+```
+
+
+### Periodic Volumes
+
+```{r periodic volumes portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% select(logo_url,
+                      "1d_volume",
+                      "7d_volume",
+                      "30d_volume",
+                      "365d_volume",
+                      "ytd_volume") %>% 
+  reactable(
+    defaultColDef = colDef(
+      format = colFormat(prefix = "€", 
+                         separators = TRUE, 
+                        digits = 0),
+      align = "center",
+      headerStyle = list(background = "#f7f7f8")
+      ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    columns = list(
+      logo_url = colDef(name = "Logo",
+                        cell = embed_img(logo_url)
+                        ),
+      "1d_volume" = colDef(name = "1 Day Volume"),
+      "7d_volume" = colDef(name = "7 Day Volume"),
+      "30d_volume" = colDef(name = "30 Day Volume"),
+      "365d_volume" = colDef(name = "365 Day Volume"),
+      "ytd_volume" = colDef(name = "Year to Date Volume")
+  ))
+
+```
+
+### Price Change
+
+```{r price change portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% select(logo_url,
+                      "1d_price_change",
+                      "7d_price_change",
+                      "30d_price_change",
+                      "365d_price_change",
+                      "ytd_price_change") %>% 
+  reactable(
+    defaultColDef = colDef(
+    format = colFormat(prefix = "€", 
+                       separators = TRUE, 
+                      digits = 3),
+    style = pos_neg_colors("red", "green", 
+                             bold = TRUE),
+    align = "center",
+    headerStyle = list(background = "#f7f7f8")
+  ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    # style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+      columns = list(
+         logo_url = colDef(name = "Logo",
+                      cell = embed_img(logo_url))
+  ))
+
+```
+
+### Price Change %
+
+```{r price change percent portfolio}
+
+library("reactablefmtr")
+
+
+pf_tracker %>% select(logo_url,
+                      "1d_price_change_pct",
+                      "7d_price_change_pct",
+                      "30d_price_change_pct",
+                      "365d_price_change_pct",
+                      "ytd_price_change_pct") %>% 
+  reactable(
+    defaultColDef = colDef(
+      format = colFormat(percent = TRUE,
+                         separators = TRUE,
+                         digits = 1),
+      align = "center",
+      headerStyle = list(background = "#f7f7f8"),
+      style = pos_neg_colors("red", "green", 
+                             bold = TRUE),
+      ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    #style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+      columns = list(
+         logo_url = colDef(name = "Logo",
+                           cell = embed_img(logo_url))
+         )
+  )
+
+```
+
+### Market Cap Change
+
+```{r market cap change portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% select(logo_url,
+                      "1d_market_cap_change",
+                      "7d_market_cap_change",
+                      "30d_market_cap_change",
+                      "365d_market_cap_change",
+                      "ytd_market_cap_change") %>% 
+  reactable(
+    defaultColDef = colDef(
+    format = colFormat(prefix = "€", 
+                       separators = TRUE, 
+                      digits = 3),
+    style = pos_neg_colors("red", "green", 
+                             bold = TRUE),
+    align = "center",
+    headerStyle = list(background = "#f7f7f8")
+  ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    # style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+      columns = list(
+         logo_url = colDef(name = "Logo",
+                      cell = embed_img(logo_url))
+  ))
+
+```
+
+
+### Volume Change %
+
+```{r volume change percent portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% select(logo_url,
+                      "1d_volume_change_pct",
+                      "7d_volume_change_pct",
+                      "30d_volume_change_pct",
+                      "365d_volume_change_pct",
+                      "ytd_volume_change_pct") %>% 
+  reactable(
+    defaultColDef = colDef(
+    format = colFormat(separators = TRUE,
+                       percent = TRUE,
+                       digits = 1),
+    style = pos_neg_colors("red", "green", 
+                             bold = TRUE),
+    align = "center",
+    headerStyle = list(background = "#f7f7f8")
+  ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    #style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+      columns = list(
+         logo_url = colDef(name = "Logo",
+                      cell = embed_img(logo_url))
+  ))
+
+```
+
+### Market Cap Change %
+
+```{r market cap change percent portfolio}
+
+library("reactablefmtr")
+
+pf_tracker %>% select(logo_url,
+                      "1d_market_cap_change_pct",
+                      "7d_market_cap_change_pct",
+                      "30d_market_cap_change_pct",
+                      "365d_market_cap_change_pct",
+                      "ytd_market_cap_change_pct") %>% 
+  reactable(
+    defaultColDef = colDef(
+      format = colFormat(percent = TRUE,
+                         separators = TRUE,
+                         digits = 1),
+      align = "center",
+      headerStyle = list(background = "#f7f7f8"),
+      style = pos_neg_colors("red", "green", 
+                             bold = TRUE),
+      ),
+    defaultPageSize = 25,
+    bordered = TRUE,
+    highlight = TRUE,
+    #style = list(fontFamily = "Montserrat, sans-serif", fontSize = "1rem"),
+      columns = list(
+         logo_url = colDef(name = "Logo",
+                           cell = embed_img(logo_url))
+         )
+  )
+
+```
+
+
+Portfolio Charts
+=======================================================================
+
+Row 
+-------------------------------------
+
+### Refresh Date
+
+```{r}
+valueBox(Sys.Date(),
+         icon = "fa-calendar"
+         )
+```
+
+### Total Portfolio Value
+
+```{r}
+pv <- sum(pf_tracker$value) %>% round(digits = 0)
+
+valueBox(paste0("€",pv),
+         icon = "fa-chart-pie",
+         color = "success"
+         )
+```
+
+### Total Projects
+
+```{r}
+valueBox(nrow(pf_tracker),
+         icon = "fa-hashtag",
+         color = "warning"
+         )
+```
+
+### Total Invested
+
+```{r}
+valueBox(paste0("€",invested_amount),
+         icon = "fa-coins"
+         )
+```
+
+
+### Total Return on Investment
+
+```{r}
+roi <- (pv-invested_amount)/invested_amount 
+
+valueBox(scales::percent(roi),
+         icon = "fa-percent"
+         )
+```
+
+Column {data-width=400}
+-------------------------------------
+
+### Portfolio Allocations
+
+```{r}
+#portfolio allocation
+fig1 <- pf_tracker %>% 
+  #reduce decimals
+  mutate_if(is.numeric, round, digits = 3) %>% 
+  #create pie chart
+  plot_ly(labels = ~id, values = ~share, type = 'pie',
+               textposition = 'inside',
+               textinfo='label+percent',
+               insidetextfont = list(color = '#FFFFFF'),
+               hoverinfo = 'text',
+               text = ~paste('€',value),
+               marker = list(colors = colors,
+                             line = list(color = '#FFFFFF', width = 1)),
+               #The 'pull' attribute can also be used to create space between the sectors
+               showlegend = TRUE)
+
+fig1 <- fig1 %>% 
+  layout(#title = 'Portfolio Allocation',
+    xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+    yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+#print
+fig1
+
+```
+
+
+### Historical Performance
+
+```{r}
+
+#read snapshot .csv
+hist_perf <- read_csv("data/pf_snapshot.csv")
+
+#parse dates correctly for plot
+hist_perf$date_time <- lubridate::parse_date_time(hist_perf$date_time, c('dmy', 'ymd'))
+
+#plot
+fig3 <- plot_ly(hist_perf,
+               type = 'scatter', 
+               mode = 'lines') %>% 
+  add_trace(x = ~date_time, 
+            y = ~total_value) %>%
+  layout(showlegend = FALSE, 
+         #title='Historical Portfolio Performance'
+         xaxis = list(title = "\n Date"),
+         yaxis = list(title = "Total Value \n")
+         )
+
+#print
+fig3
+
+```
+
+
+Column {data-width=400}
+-------------------------------------
+
+### Price % of All Time High
+
+```{r}
+
+#percentage relative to ath
+
+fig2  <- plot_ly(pf_tracker, 
+                x = ~id, 
+                y = ~price_pct_ath, 
+                type = 'bar',
+                text = ~paste0(round(price_pct_ath,2),"%"),
+                textposition = "outside") %>%
+  layout(xaxis = list(title = "\n Ticker Symbol"),
+         yaxis = list(title = "Price % from ATH \n")
+         )
+
+#print
+fig2
+
+```
+
+### Chart 4
+
+```{r}
+
+heatmap <- pf_tracker %>% 
+  select(4,21:55) %>% as.data.frame()
+
+rownames(heatmap) <- heatmap[,1]
+heatmap[,1] <- NULL
+
+heatmap2 <- heatmap %>% 
+  select(contains("pct")) %>%
+  mutate_if(is.numeric, ~ . * 100) %>% 
+  na.omit(heatmap)
+
+#colors
+library(RColorBrewer)
+pal <- colorRampPalette(brewer.pal(11, "RdYlGn"))(100)
+
+
+# base heatmap
+heatmap(t(as.matrix(heatmap2)),
+        Colv = NA, 
+        Rowv = NA, 
+        scale="column",
+        col = pal)
+
+```
